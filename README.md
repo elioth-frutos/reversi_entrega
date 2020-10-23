@@ -6,8 +6,8 @@ command line interface.
 [![Watch the video](https://img.youtube.com/vi/bvcf3egUvFE/maxresdefault.jpg)](https://youtu.be/bvcf3egUvFE)
 
 ## Author
-Elioth Frutos
-ID: Y01088
+- Elioth Frutos
+- ID: Y01088
 
 ## Building the program
 1. Clone this repo.
