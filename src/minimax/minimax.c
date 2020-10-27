@@ -179,8 +179,8 @@ static int evaluate(Game *game)
     // valid moves, it means that the game is over.
     if (!check_for_valid_moves(game))
     {
-        int black_count;
-        int white_count;
+        int black_count = 0;
+        int white_count = 0;
 
         // Count the amount of black and white discs.
         get_game_score(game, 0, 0, &white_count, &black_count);
