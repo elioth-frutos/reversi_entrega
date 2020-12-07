@@ -1,0 +1,33 @@
+CPU_1 has corner evaluation, CPU_2 doesn't.
+CPU_1 plays first.
+CPU_1 is BLACK and CPU_2 is WHITE because CPU_1 played first.
+DEPTH 6
+
+White: 6 | Black: 3
+White: 3 | Black: 4
+White: 6 | Black: 3
+White: 6 | Black: 3
+White: 6 | Black: 3
+White: 6 | Black: 3
+White: 6 | Black: 3
+White: 6 | Black: 3
+White: 3 | Black: 4
+White: 6 | Black: 3
+White: 3 | Black: 4
+White: 6 | Black: 3
+White: 3 | Black: 4
+White: 6 | Black: 3
+White: 3 | Black: 4
+White: 6 | Black: 3
+White: 3 | Black: 4
+White: 6 | Black: 3
+White: 3 | Black: 4
+White: 41 | Black: 23
+White: 41 | Black: 23
+White: 41 | Black: 23
+
+
+CPU1 is BLACK with CORNER EVALuation
+DEPTH 8
+
+White: 13 | Black: 51

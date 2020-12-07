@@ -1,7 +1,8 @@
-#ifndef _LOGIC_
-#define _LOGIC_
+#ifndef LOGIC
+#define LOGIC
 
 #include "../game.h"
+
 
 typedef enum direction
 {
@@ -23,6 +24,7 @@ typedef enum pattern
 } pattern;
 
 
+void button_pressed_callback(GtkWidget *widget, GdkEvent *event, Game *game);
 void initialize_board(Square board[BOARD_SIZE][BOARD_SIZE], int i, int j);
 void transform_game(Game *game);
 char check_for_valid_moves(Game *game);

@@ -1,6 +1,13 @@
 #include <stdio.h>
+#include <gtk/gtk.h>
+#include <cairo.h>
 #include "../game.h"
+#include "../logic/logic.h"
 
+void draw_callback(GtkWidget *widget, cairo_t *cr, Game *game);
+static void draw_discs(
+        cairo_t *cr, gdouble tile_size, gdouble start_x, gdouble start_y,
+        Game *game);
 void print_game_information(Game *game);
 static void print_horizontal_separators(int j);
 static void print_horizontal_indices(int j);
@@ -10,6 +17,173 @@ static void print_game_score_and_color(Game *game);
 void get_game_score(
         Game *game, int i, int j, int *white_count, int *black_count);
 static void print_header_separator(int i);
+
+
+// Transforms a value in the range of [0, 255] to [0, 1].
+// Used for RGB color coding.
+//
+// Arguments:
+// - A value in the range [0, 255].
+//
+// Return value:
+// - A value in the range [0, 1].
+static float color_code(float color)
+{
+    return color / 255;
+}
+
+// Signal handler to be called when a "draw" signal
+// is detected.
+void draw_callback(GtkWidget *widget, cairo_t *cr, Game *game)
+{
+    gdouble width, height, tile_size, board_size, start_x, start_y;
+
+    // Get the height and width of the drawing widget.
+    width = gtk_widget_get_allocated_width(widget);
+    height = gtk_widget_get_allocated_height(widget);
+
+    // Calculate the tile size.
+    tile_size =
+        (width < height) ?
+        (width / (BOARD_SIZE + 1)) :
+        (height / (BOARD_SIZE + 1));
+
+    // Calculate the board size.
+    board_size = tile_size * BOARD_SIZE;
+
+    // Calculate the starting coordinates (for centering the board).
+    start_x = (width / 2) - (board_size / 2);
+    start_y = (height / 2) - (board_size / 2);
+
+    // Render the background color.
+    cairo_set_source_rgba(
+            cr, color_code(102), color_code(152), color_code(227), 0.3);
+    // Create a path that forms a rectangle (for the background).
+    cairo_rectangle(cr, 0, 0, width, height);
+    // Fill the path.
+    cairo_fill(cr);
+
+    // Render each tile of the board.
+    for (int i = 0; i < BOARD_SIZE; i++)
+    {
+        for (int j = 0; j < BOARD_SIZE; j++)
+        {
+            // Set the x and y coordinates for each square.
+            int x = start_x + j * tile_size;
+            int y = start_y + i * tile_size;
+
+            // Set the color code depending on the parity of
+            // the sum of the square's indeces.
+            if ((i + j) % 2 == 0)
+                cairo_set_source_rgba(
+                        cr,
+                        color_code(102),
+                        color_code(152),
+                        color_code(227),
+                        1);
+            else
+                cairo_set_source_rgba(
+                        cr,
+                        color_code(26),
+                        color_code(84),
+                        color_code(171),
+                        1);
+           
+            // Create a path that forms a rectangle (for the tile).
+            cairo_rectangle(cr, x, y, tile_size, tile_size);
+            // Fill the path.
+            cairo_fill(cr);
+        }
+    }
+
+    // Render the gaming board's border.
+    // Increase the path's width.
+    cairo_set_line_width (cr, 5);
+    // Create a path that forms a rectangle (around the board).
+    cairo_rectangle(cr, start_x, start_y, board_size, board_size);
+    // Draw the path.
+    cairo_stroke(cr);
+
+    // Draw the discs.
+    draw_discs(cr, tile_size, start_x, start_y, game);
+
+    return;
+}
+
+
+// Draws the discs.
+static void draw_discs(
+        cairo_t *cr, gdouble tile_size, gdouble start_x, gdouble start_y,
+        Game *game)
+{
+    // Calculate the radius of the discs.
+    gdouble radius = (tile_size / 2) * 0.7;
+    gdouble radius_2 = (tile_size / 2) * 0.5;
+
+    // Traverse the matrix and draw the discs.
+    for (int i = 0; i < BOARD_SIZE; i++)
+    {
+        for (int j = 0; j < BOARD_SIZE; j++)
+        {
+            // X and Y position of every disc on the board.
+            int x = start_x + j * tile_size + (tile_size / 2);
+            int y = start_y + i * tile_size + (tile_size / 2);
+
+            // Check the color of the discs and draw accordingly.
+            if (game->board[i][j].status == full)
+            {
+                // White disc.
+                if (game->board[i][j].color == white)
+                {
+                    cairo_set_source_rgba(
+                            cr, color_code(0), color_code(0), color_code(0), 1);
+                    // Create a path that forms a circle.
+                    cairo_arc(cr, x, y, radius, 0, 2*G_PI);
+                    // Fill the path.
+                    cairo_fill(cr);
+
+                    // Draw the inner circle.
+                    cairo_set_source_rgba(
+                            cr, color_code(100), color_code(100),
+                            color_code(100), 1);
+                    cairo_arc(cr, x, y, radius_2, 0, 2*G_PI);
+                    cairo_fill(cr);
+                }
+                // Black disc.
+                else if (game->board[i][j].color == black)
+                {
+                    cairo_set_source_rgba(
+                            cr, color_code(255), color_code(255),
+                            color_code(255), 1);
+                    // Create a path that forms a circle.
+                    cairo_arc(cr, x, y, radius, 0, 2*G_PI);
+                    // Fill the path.
+                    cairo_fill(cr);
+
+                    // Draw the inner circle.
+                    cairo_set_source_rgba(
+                            cr, color_code(200), color_code(200),
+                            color_code(200), 1);
+                    cairo_arc(cr, x, y, radius_2, 0, 2*G_PI);
+                    cairo_fill(cr);
+                }
+            }
+
+            // Draw the "valid" mark.
+            else if (
+                    game->board[i][j].status == valid &&
+                    game->turn == player_1)
+            {
+                cairo_set_source_rgba(
+                        cr, color_code(255), color_code(0), color_code(0), 1);
+                // Create a path that forms a circle.
+                cairo_arc(cr, x, y, radius, 0, 2*G_PI);
+                // Create a stroke along the recently created path.
+                cairo_stroke(cr);
+            }
+        }
+    }
+}
 
 
 void print_game(Game *game)

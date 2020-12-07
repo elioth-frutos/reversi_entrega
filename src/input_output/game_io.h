@@ -3,6 +3,7 @@
 
 #include "../game.h"
 
+void draw_callback(GtkWidget *widget, cairo_t *cr, gpointer data);
 void print_game(Game *game);
 void print_invalid_input(void);
 void print_illegal_move(void);

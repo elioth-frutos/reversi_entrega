@@ -15,6 +15,11 @@
 #define CPU_2_READ_PATH "cpu_1.txt"
 #define CPU_2_WRITE_PATH "cpu_2.txt"
 
+
+void button_pressed_callback(GtkWidget *widget, GdkEvent *event, Game *game);
+static void player_1_turn(Game *game, Move move);
+static void player_2_turn(Game *game, Move move);
+static void turn_transition(Game *game, Move move);
 void mark_valid_moves(Game *game, color color);
 static void mark_valid_moves_all_directions(
         Game *game, color color, direction dir);
@@ -51,6 +56,224 @@ static void time_delay(time_t seconds);
 static void print_paso_to_file(void);
 
 
+// Signal handler to be called when a "button-press-event" signal
+// is detected.
+void button_pressed_callback(GtkWidget *widget, GdkEvent *event, Game *game)
+{
+    gdouble width, height, tile_size, board_size, start_x, start_y;
+    // Struct to store the move.
+    Move move;
+
+    // Get the height and width of the drawing widget.
+    width = gtk_widget_get_allocated_width(widget);
+    height = gtk_widget_get_allocated_height(widget);
+
+    // Calculate the tile size.
+    tile_size =
+        (width < height) ?
+        (width / (BOARD_SIZE + 1)) :
+        (height / (BOARD_SIZE + 1));
+
+    // Calculate the board size.
+    board_size = tile_size * BOARD_SIZE;
+
+    // Calculate the starting coordinates (for centering the board).
+    start_x = (width / 2) - (board_size / 2);
+    start_y = (height / 2) - (board_size / 2);
+
+    // Get the X and Y coordinates of the mouse click event.
+    gdouble x = ((GdkEventButton*) event)->x;
+    gdouble y = ((GdkEventButton*) event)->y;
+
+    // Calculate the i and j index for the board matrix.
+    gint j = (x - start_x) / tile_size;
+    gint i = (y - start_y) / tile_size;
+    // Copy the coordinates to the "move" struct.
+    move.row = i;
+    move.column = j;
+
+    if (game->state == main_menu)
+    {
+        game->mode = single_player;
+        game->turn = player_1;
+        game->players_color.player_1 = black;
+        game->players_color.player_2 = white;
+
+        initialize_board(game->board, 0, 0);
+        game->state = running;
+
+        // Mark all squares where the first move could me made.
+        mark_valid_moves(game, get_players_color(*game));
+
+        // Render the game board.
+        gtk_widget_queue_draw(game->drawing_area);
+    }
+
+    // Check if the click was within range of the board, if the game
+    // is running and if the status of the selected tile is "valid".
+    if (
+            x >= start_x && x <= start_x + board_size &&
+            y >= start_y && y <= start_y + board_size &&
+            game->state == running &&
+            game->turn == player_1 &&
+            game->board[move.row][move.column].status == valid)
+    {
+        // Player 1's turn.
+        player_1_turn(game, move);
+
+        if (game->state == running)
+            // Player 2's turn.
+            player_2_turn(game, move);
+    }
+
+    else if (game->state == game_over)
+    {
+        ///////////////////
+        printf("GAME OVER.");
+        ///////////////////
+    }
+    return;
+}
+
+
+static void player_1_turn(Game *game, Move move)
+{
+    // Make the move according to who's turn it is.
+    switch (game->mode)
+    {
+        case single_player:
+            // Transition to the next turn.
+            turn_transition(game, move);
+
+            break;
+        case two_players:
+            // Transition to the next turn.
+            turn_transition(game, move);
+
+            break;
+        case cpu_vs_itself:
+            get_machine_move(*game, &move);
+
+            // Transition to the next turn.
+            turn_transition(game, move);
+
+            break;
+        case cpu_vs_another_cpu:
+            if (game->turn == player_1)
+            {
+                get_machine_move(*game, &move);
+                save_move_to_file(move);
+            }
+            else
+            {
+                get_opponents_cpu_move_from_file(game, &move);
+            }
+
+            // Transition to the next turn.
+            turn_transition(game, move);
+
+            break;
+    }
+
+
+    // Render the game board.
+    gtk_widget_queue_draw(game->drawing_area);
+}
+
+
+static void player_2_turn(Game *game, Move move)
+{
+    // Make the move according to who's turn it is.
+    switch (game->mode)
+    {
+        case single_player:
+            get_machine_move(*game, &move);
+
+            // Transition to the next turn.
+            turn_transition(game, move);
+            break;
+        case two_players:
+            // Transition to the next turn.
+            turn_transition(game, move);
+            break;
+        case cpu_vs_itself:
+            get_machine_move(*game, &move);
+
+            // Transition to the next turn.
+            turn_transition(game, move);
+            break;
+        case cpu_vs_another_cpu:
+            if (game->turn == player_1)
+            {
+                get_machine_move(*game, &move);
+                save_move_to_file(move);
+            }
+            else
+            {
+                get_opponents_cpu_move_from_file(game, &move);
+            }
+            // Transition to the next turn.
+            turn_transition(game, move);
+            break;
+    }
+
+    // Render the game board.
+    gtk_widget_queue_draw(game->drawing_area);
+}
+
+
+static void turn_transition(Game *game, Move move)
+{
+    // Transform board.
+    transform_board(game, move);
+
+    // If there are valid moves, switch the player.
+    if (check_for_valid_moves(game))
+    {
+        switch_player(&game->turn);
+    }
+    // If there aren't valid moves, the next player
+    // has to pass its turn.
+    else
+    {
+        // If we are playing against another CPU, we have to make
+        // sure to print "PASO" to the file when skipping turns
+        // and to delete the file when our opponent's CPU is
+        // skipping turns.
+        if (game->mode == cpu_vs_another_cpu)
+        {
+            // Read the file (with no effect) and delete it.
+            if (game->turn == player_1)
+                get_opponents_cpu_move_from_file(game, &move);
+
+            // If I don't have any valid moves to make, print "PASO".
+            else
+                print_paso_to_file();
+        }
+
+        // Mark all squares where the next move could be made.
+        mark_valid_moves(game, get_players_color(*game));
+
+        // If there still there aren't valid moves, the game is over.
+        if (!check_for_valid_moves(game))
+            game->state = game_over;
+
+        // If there are valid moves, inform the user that a
+        // turn will be skipped.
+        else
+            print_no_valid_moves();
+    }
+
+
+    ///////////////////////////
+    // Render the game board.
+    gtk_widget_queue_draw(game->drawing_area);
+    ///////////////////////////
+
+    return;
+}
+
+
 void initialize_board(Square board[BOARD_SIZE][BOARD_SIZE], int i, int j)
 {
     // Base case. End of the board.
@@ -73,6 +296,7 @@ void initialize_board(Square board[BOARD_SIZE][BOARD_SIZE], int i, int j)
     else
     {
         board[i][j].status = empty;
+        board[i][j].color = white;
     }
     return initialize_board(board, i, ++j);
 }

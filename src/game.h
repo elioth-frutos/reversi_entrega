@@ -1,8 +1,8 @@
-#ifndef _GAME_
-#define _GAME_
+#ifndef GAME
+#define GAME
 
-#define FALSE 0
-#define TRUE 1
+#include <gtk/gtk.h>
+
 #define BOARD_SIZE 8
 
 typedef enum square_status
@@ -88,6 +88,8 @@ typedef struct Game
     game_state state;
     turn turn;
     Players_color players_color;
+    GtkBuilder *builder;
+    GtkWidget *drawing_area;
 } Game;
 
 #endif
