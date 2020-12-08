@@ -135,6 +135,7 @@ static void draw_discs(
                 // White disc.
                 if (game->board[i][j].color == white)
                 {
+                    // Set the color.
                     cairo_set_source_rgba(
                             cr, color_code(0), color_code(0), color_code(0), 1);
                     // Create a path that forms a circle.
@@ -152,6 +153,7 @@ static void draw_discs(
                 // Black disc.
                 else if (game->board[i][j].color == black)
                 {
+                    // Set the color.
                     cairo_set_source_rgba(
                             cr, color_code(255), color_code(255),
                             color_code(255), 1);
@@ -174,8 +176,11 @@ static void draw_discs(
                     game->board[i][j].status == valid &&
                     game->turn == player_1)
             {
+                // Set the color.
                 cairo_set_source_rgba(
                         cr, color_code(255), color_code(0), color_code(0), 1);
+                // Set the path's width.
+                cairo_set_line_width (cr, 2);
                 // Create a path that forms a circle.
                 cairo_arc(cr, x, y, radius, 0, 2*G_PI);
                 // Create a stroke along the recently created path.

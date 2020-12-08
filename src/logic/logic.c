@@ -96,8 +96,15 @@ void button_pressed_callback(GtkWidget *widget, GdkEvent *event, Game *game)
     {
         game->mode = single_player;
         game->turn = player_1;
-        game->players_color.player_1 = black;
-        game->players_color.player_2 = white;
+        game->players_color.player_1 = white;
+        game->players_color.player_2 = black;
+
+        //////////////////
+        printf("\nGame mode: %d\n", game->mode);
+        printf("\nFirst turn: %d\n", game->turn);
+        printf("\nPlayer 1's color: %d\n", game->players_color.player_1);
+        //////////////////
+
 
         initialize_board(game->board, 0, 0);
         game->state = running;
