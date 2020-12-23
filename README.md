@@ -6,7 +6,7 @@ graphical user interface made with the GTK library.
 [![Watch the video](https://img.youtube.com/vi/bvcf3egUvFE/maxresdefault.jpg)](https://youtu.be/bvcf3egUvFE)
 
 ## Final presentation
-[![Watch the video](https://img.youtube.com/vi/VrXYBHdVJ4A/maxresdefault.jpg)](https://youtu.be/VrXYBHdVJ4A)
+[![Watch the video](https://img.youtube.com/vi/VrXYBHdVJ4A/hqdefault.jpg)](https://youtu.be/VrXYBHdVJ4A)
 
 ## Author
 - Elioth Frutos
