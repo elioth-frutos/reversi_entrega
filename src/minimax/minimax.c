@@ -8,6 +8,7 @@
 #define MAX_SCORE 10000
 
 // Maximum recursion depth.
+// Previous 4.
 #define MAX_DEPTH 4
 
 // Huge number used as a starting value when

@@ -92,4 +92,15 @@ typedef struct Game
     GtkWidget *drawing_area;
 } Game;
 
+
+// Variables to store the names of the players.
+gchar *player_name, *opponents_name;
+
+// Some widgets that are used on different modules.
+GtkWidget *game_over_window, *game_over_label,
+          *turn_info_label, *score_info_label;
+
+// Statistics text buffer.
+GtkTextBuffer *buffer;
+
 #endif

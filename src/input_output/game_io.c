@@ -17,6 +17,12 @@ static void print_game_score_and_color(Game *game);
 void get_game_score(
         Game *game, int i, int j, int *white_count, int *black_count);
 static void print_header_separator(int i);
+static void store_string(gint i, gchar *source, gchar *dest);
+static int copy_entire_file_except_line(
+        gint line_number, gint played_int, gint won_int, gint lost_int,
+        gint draws_int);
+static int is_player_on_statistics(void);
+
 
 
 // Transforms a value in the range of [0, 255] to [0, 1].
@@ -137,24 +143,6 @@ static void draw_discs(
                 {
                     // Set the color.
                     cairo_set_source_rgba(
-                            cr, color_code(0), color_code(0), color_code(0), 1);
-                    // Create a path that forms a circle.
-                    cairo_arc(cr, x, y, radius, 0, 2*G_PI);
-                    // Fill the path.
-                    cairo_fill(cr);
-
-                    // Draw the inner circle.
-                    cairo_set_source_rgba(
-                            cr, color_code(100), color_code(100),
-                            color_code(100), 1);
-                    cairo_arc(cr, x, y, radius_2, 0, 2*G_PI);
-                    cairo_fill(cr);
-                }
-                // Black disc.
-                else if (game->board[i][j].color == black)
-                {
-                    // Set the color.
-                    cairo_set_source_rgba(
                             cr, color_code(255), color_code(255),
                             color_code(255), 1);
                     // Create a path that forms a circle.
@@ -166,6 +154,25 @@ static void draw_discs(
                     cairo_set_source_rgba(
                             cr, color_code(200), color_code(200),
                             color_code(200), 1);
+                    cairo_arc(cr, x, y, radius_2, 0, 2*G_PI);
+                    cairo_fill(cr);
+                }
+                // Black disc.
+                else if (game->board[i][j].color == black)
+                {
+                    // Set the color.
+                    cairo_set_source_rgba(
+                            cr, color_code(0), color_code(0),
+                            color_code(0), 1);
+                    // Create a path that forms a circle.
+                    cairo_arc(cr, x, y, radius, 0, 2*G_PI);
+                    // Fill the path.
+                    cairo_fill(cr);
+
+                    // Draw the inner circle.
+                    cairo_set_source_rgba(
+                            cr, color_code(100), color_code(100),
+                            color_code(100), 1);
                     cairo_arc(cr, x, y, radius_2, 0, 2*G_PI);
                     cairo_fill(cr);
                 }
@@ -188,6 +195,54 @@ static void draw_discs(
             }
         }
     }
+}
+
+
+// Updates the GtkLabels that show the game information and status.
+void update_game_info(Game *game)
+{
+    gchar new_text[700];
+    int black_count = 0, white_count = 0,
+        player_1_count = 0, player_2_count = 0;
+    gchar player_1_color[10], player_2_color[10];
+
+    // Count the amount of black and white discs.
+    get_game_score(game, 0, 0, &white_count, &black_count);
+
+    // Store the counts according to the players' colors.
+    if (game->players_color.player_1 == white)
+    {
+        player_1_count = white_count;
+        player_2_count = black_count;
+        strcpy(player_1_color, "white");
+        strcpy(player_2_color, "black");
+    }
+    else
+    {
+        player_2_count = white_count;
+        player_1_count = black_count;
+        strcpy(player_1_color, "black");
+        strcpy(player_2_color, "white");
+    }
+
+    // Set the new text according to who's turn it is.
+    if (game->turn == player_1)
+        sprintf(new_text, "It's %s's turn.", player_name);
+    else
+        sprintf(new_text, "It's %s's turn.", opponents_name);
+
+    // Change the text of the label that shows the turn.
+    gtk_label_set_text(turn_info_label, new_text);
+
+    // Set the text that will show the current score of both players.
+    sprintf(
+            new_text,
+            "%s (%s): %d | %s (%s): %d",
+            player_name, player_1_color, player_1_count,
+            opponents_name, player_2_color, player_2_count);
+
+    // Change the text of the label that shows the scores.
+    gtk_label_set_text(score_info_label, new_text);
 }
 
 
@@ -558,29 +613,209 @@ void print_opponents_cpu_move(Move move)
 }
 
 
-// Prints the results of every match in a text file.
-void print_game_statistics_to_file(Game game)
+// Update the game's database to include the last match.
+void update_game_statistics(Game game)
 {
-    int black_count;
-    int white_count;
-    char output_string[42];
+    int black_count = 0;
+    int white_count = 0;
+    int line_number;
+    gchar output_string[1000];
 
     // Count the amount of black and white discs.
     get_game_score(&game, 0, 0, &white_count, &black_count);
 
-    // Create a new file.
-    FILE *fp = fopen("statistics.txt", "a");
+    // Update the flags according to the results of the game.
+    int games_won = 0, games_lost = 0, draws = 0;
+    if (black_count > white_count)
+    {
+        if (game.players_color.player_1 == black)
+            games_won++;
+        else
+            games_lost++;
+    }
+    else if (black_count < white_count)
+    {
+        if (game.players_color.player_1 == black)
+            games_lost++;
+        else
+            games_won++;
+    }
+    else
+    {
+        draws++;
+    }
 
-    // Create the formatted string to be printed to the file.
+    // If the player's name is already on the file.
+    if ((line_number = is_player_on_statistics()) != -1)
+    {
+        gchar line[1000];
+        gchar played_str[20], won_str[20], lost_str[20], draws_str[10];
+        gint played_int, won_int, lost_int, draws_int;
+
+        // Open the statistics file for reading and writing.
+        FILE *fp = fopen("statistics.txt", "r+");
+
+        // Go to the line "line_number".
+        for(int i = line_number; i >= 0; i--)
+            // Consume all the characters in the line.
+            while(fgetc(fp) != '\n');
+
+        // Store the relevant line on the "line" variable.
+        fgets(line, 1000, fp);
+        // Store the relevant numbers as strings.
+        for(int i = 0; i < 1000; i++)
+        {
+            // Games played.
+            if (line[i-2] == ':' && line[i-3] == 'd')
+                store_string(i, line, played_str);
+
+            // Games won.
+            else if (line[i-2] == ':' && line[i-3] == 'n')
+                store_string(i, line, won_str);
+
+            // Games lost.
+            else if (line[i-2] == ':' && line[i-3] == 't')
+                store_string(i, line, lost_str);
+
+            // Games that ended in a draw.
+            else if (line[i-2] == ':' && line[i-3] == 's')
+                store_string(i, line, draws_str);
+        }
+
+        // Convert the strings to integers.
+        played_int = atoi(played_str);
+        won_int = atoi(won_str);
+        lost_int = atoi(lost_str);
+        draws_int = atoi(draws_str);
+
+        // Update the variables with the results of the latest game.
+        played_int++;
+        won_int += games_won;
+        lost_int += games_lost;
+        draws_int += draws;
+
+        // Close the file.
+        fclose(fp);
+
+        // Copy the entire file except the line "line_number", which
+        // will be replaced with the updated data.
+        copy_entire_file_except_line(
+                line_number, played_int, won_int, lost_int, draws_int);
+
+    }
+    // If the player's name is not on the file.
+    else
+    {
+        // Open the statistics file for reading and writing.
+        FILE *fp = fopen("statistics.txt", "a");
+
+        // Create the formatted string to be printed to the file.
+        sprintf(
+                output_string,
+                "-> %s\n| Games played: %d | Games won: %d | Games lost: %d |"
+                " Draws: %d |\n",
+                 player_name, 1, games_won, games_lost, draws);
+
+        fputs(output_string, fp);
+        fputc('\n', fp);
+
+        // Close the file.
+        fclose(fp);
+    }
+}
+
+
+static void store_string(gint i, gchar *source, gchar *dest)
+{
+    int j = i;
+    for(j = i; source[j] != ' '; j++)
+        dest[j-i] = source[j];
+    dest[j-i] = '\0';
+}
+
+
+static int copy_entire_file_except_line(
+        gint line_number, gint played_int, gint won_int, gint lost_int,
+        gint draws_int)
+{
+    gchar aux[1000];
+    gchar output_string[1000];
+
+    // Open the original file.
+    FILE *fp = fopen("statistics.txt", "r");
+    // Open an auxiliary file.
+    FILE *fp_2 = fopen("statistics_aux", "w");
+
+    // Copy the contents of file_1 to file_2 up to the line "line_number".
+    for(int i = 0; i < line_number && fgets(aux, 1000, fp); i++)
+        fputs(aux, fp_2);
+
+    // Create the formatted string with the updated data.
     sprintf(
             output_string,
-            "White: %d | Black: %d",
-            white_count, black_count);
+            "-> %s\n| Games played: %d | Games won: %d | Games lost: %d |"
+            " Draws: %d |\n",
+             player_name, played_int, won_int, lost_int, draws_int);
 
-    fputs(output_string, fp);
-    fputc('\n', fp);
+    // Store the updated data into the file.
+    fputs(output_string, fp_2);
+
+    // Do not copy the next 2 lines (old data).
+    for(int i = 0; i < 2; i++)
+        fgets(aux, 1000, fp);
+
+    // Copy the rest of the contents of file_1 to file_2.
+    while(fgets(aux, 1000, fp))
+        fputs(aux, fp_2);
+
+    // Close the files.
+    fclose(fp_2);
+    fclose(fp);
+
+    // Remove the old file.
+    remove("statistics.txt");
+    // Rename the new file.
+    rename("statistics_aux", "statistics.txt");
+}
+
+
+static int is_player_on_statistics(void)
+{
+    gchar aux[1000];
+    gchar name[1000];
+    int line_number = 0;
+
+    // Open the statistics file for reading and writing.
+    FILE *fp = fopen("statistics.txt", "r");
+
+    // Scan every line of the file.
+    while(fgets(aux, 1000, fp))
+    {
+        int i = 3;
+        // Check if we have found a line with a name.
+        if (strlen(aux) > 4 && aux[0] == '-' && aux[1] == '>' && aux[2] == ' ')
+        {
+            for(i = 3; i < 1002 && aux[i] != '\n'; i++)
+            {
+                name[i-3] = aux[i];
+            }
+            name[i-3] = '\0';
+        }
+        // Check if the player name matches with the one in the file.
+        if (strcmp(name, player_name) == 0)
+        {
+            // Close the file.
+            fclose(fp);
+
+            // A match was found. Return the line number.
+            return line_number;
+        }
+        line_number++;
+    }
 
     // Close the file.
     fclose(fp);
 
+    // No match was found in the file.
+    return -1;
 }

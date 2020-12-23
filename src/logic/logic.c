@@ -17,9 +17,14 @@
 
 
 void button_pressed_callback(GtkWidget *widget, GdkEvent *event, Game *game);
-static void player_1_turn(Game *game, Move move);
-static void player_2_turn(Game *game, Move move);
-static void turn_transition(Game *game, Move move);
+static void human_move(Game *game, Move move);
+static void cpu_move(Game *game);
+void turn_transition(Game *game, Move move);
+static void game_over_function(Game *game);
+static void set_text_game_over(Game *game, gchar *text);
+static void set_text_aux(
+        Game *game, gchar *text, color color, gboolean draw,
+        gint white_count, gint black_count);
 void mark_valid_moves(Game *game, color color);
 static void mark_valid_moves_all_directions(
         Game *game, color color, direction dir);
@@ -37,7 +42,7 @@ static void reverse_color_in_array(
         char going_back, int i, int j);
 static void delete_all_valid_moves(Game *game, int i, int j);
 static void get_human_move(Game game, Move *move);
-static void get_machine_move(Game game, Move *move);
+void get_machine_move(Game game, Move *move);
 void transform_board(Game *game, Move move);
 void switch_player(turn *turn);
 static void get_starting_indices(direction dir, int *i, int *j);
@@ -88,148 +93,123 @@ void button_pressed_callback(GtkWidget *widget, GdkEvent *event, Game *game)
     // Calculate the i and j index for the board matrix.
     gint j = (x - start_x) / tile_size;
     gint i = (y - start_y) / tile_size;
+
     // Copy the coordinates to the "move" struct.
     move.row = i;
     move.column = j;
 
-    if (game->state == main_menu)
-    {
-        game->mode = single_player;
-        game->turn = player_1;
-        game->players_color.player_1 = white;
-        game->players_color.player_2 = black;
-
-        //////////////////
-        printf("\nGame mode: %d\n", game->mode);
-        printf("\nFirst turn: %d\n", game->turn);
-        printf("\nPlayer 1's color: %d\n", game->players_color.player_1);
-        //////////////////
-
-
-        initialize_board(game->board, 0, 0);
-        game->state = running;
-
-        // Mark all squares where the first move could me made.
-        mark_valid_moves(game, get_players_color(*game));
-
-        // Render the game board.
-        gtk_widget_queue_draw(game->drawing_area);
-    }
-
-    // Check if the click was within range of the board, if the game
-    // is running and if the status of the selected tile is "valid".
+    // User's turn.
+    // Check if the game is running, if it's the user's turn,
+    // if the click was within range of the board and if the status
+    // of the selected tile is "valid" before executing the user's play.
     if (
-            x >= start_x && x <= start_x + board_size &&
-            y >= start_y && y <= start_y + board_size &&
             game->state == running &&
-            game->turn == player_1 &&
+            (game->mode == single_player && game->turn == player_1 ||
+             game->mode == two_players) &&
+            (x >= start_x && x <= start_x + board_size &&
+             y >= start_y && y <= start_y + board_size) &&
             game->board[move.row][move.column].status == valid)
     {
-        // Player 1's turn.
-        player_1_turn(game, move);
-
-        if (game->state == running)
-            // Player 2's turn.
-            player_2_turn(game, move);
+        human_move(game, move);
     }
 
-    else if (game->state == game_over)
+    // CPU's turn.
+    // Check if the game is running and if it's the CPU's turn.
+    if (
+            game->state == running &&
+            game->mode == single_player && game->turn == player_2 ||
+            game->mode == cpu_vs_itself ||
+            game->mode == cpu_vs_another_cpu)// && game->turn == player_1)
     {
-        ///////////////////
-        printf("GAME OVER.");
-        ///////////////////
+        // Computer's move, as usual.
+        cpu_move(game);
+        // Let the CPU play continuously if the user's turn gets
+        // skipped every time.
+        while (
+                game-> state == running &&
+                game->mode == single_player &&
+                game->turn == player_2)
+            cpu_move(game);
+    }
+
+    // Show the game over window if the game is over.
+    if (game->state == game_over)
+    {
+        gtk_widget_show_all((GtkWidget *) game_over_window);
+        game_over_function(game);
     }
     return;
 }
 
 
-static void player_1_turn(Game *game, Move move)
+// Executes the move specified by the user, if appropiate.
+static void human_move(Game *game, Move move)
 {
-    // Make the move according to who's turn it is.
-    switch (game->mode)
+    // Exit the function if it's not the user's turn.
+    if (
+            (game->mode != single_player && game->mode != two_players) ||
+            (game->mode == single_player && game->turn == player_2))
     {
-        case single_player:
-            // Transition to the next turn.
-            turn_transition(game, move);
-
-            break;
-        case two_players:
-            // Transition to the next turn.
-            turn_transition(game, move);
-
-            break;
-        case cpu_vs_itself:
-            get_machine_move(*game, &move);
-
-            // Transition to the next turn.
-            turn_transition(game, move);
-
-            break;
-        case cpu_vs_another_cpu:
-            if (game->turn == player_1)
-            {
-                get_machine_move(*game, &move);
-                save_move_to_file(move);
-            }
-            else
-            {
-                get_opponents_cpu_move_from_file(game, &move);
-            }
-
-            // Transition to the next turn.
-            turn_transition(game, move);
-
-            break;
+        ///////////////////
+        printf("\nHUMAN RETURN\n");
+        ///////////////////
+        return;
     }
 
-
-    // Render the game board.
-    gtk_widget_queue_draw(game->drawing_area);
+    // If it's the user's turn, make the transition.
+    else
+    {
+        turn_transition(game, move);
+    }
+    return;
 }
 
 
-static void player_2_turn(Game *game, Move move)
+// Executes the CPU's move, if appropiate.
+static void cpu_move(Game *game)
 {
-    // Make the move according to who's turn it is.
-    switch (game->mode)
+    // Exit the function if it's not the CPU's turn.
+    if (
+            (game->mode == single_player && game->turn == player_1) ||
+            game->mode == two_players)// ||
+            //(game->mode == cpu_vs_another_cpu && game->turn == player_2))
     {
-        case single_player:
-            get_machine_move(*game, &move);
-
-            // Transition to the next turn.
-            turn_transition(game, move);
-            break;
-        case two_players:
-            // Transition to the next turn.
-            turn_transition(game, move);
-            break;
-        case cpu_vs_itself:
-            get_machine_move(*game, &move);
-
-            // Transition to the next turn.
-            turn_transition(game, move);
-            break;
-        case cpu_vs_another_cpu:
-            if (game->turn == player_1)
-            {
-                get_machine_move(*game, &move);
-                save_move_to_file(move);
-            }
-            else
-            {
-                get_opponents_cpu_move_from_file(game, &move);
-            }
-            // Transition to the next turn.
-            turn_transition(game, move);
-            break;
+        ///////////////////
+        printf("\nCPU RETURN\n");
+        ///////////////////
+        return;
     }
 
-    // Render the game board.
-    gtk_widget_queue_draw(game->drawing_area);
+    // If it's the CPU's turn, make the transition.
+    else
+    {
+        Move move;
+
+        // Single player game mode.
+        if (game->mode == single_player)
+        {
+            get_machine_move(*game, &move);
+        }
+
+        // Against another program.
+        else if (game->mode == cpu_vs_another_cpu && game->turn == player_1)
+        {
+            get_machine_move(*game, &move);
+            save_move_to_file(move);
+        }
+        else
+        {
+            get_opponents_cpu_move_from_file(game, &move);
+        }
+
+        // Transition to the next turn.
+        turn_transition(game, move);
+    }
+    return;
 }
 
 
-static void turn_transition(Game *game, Move move)
+void turn_transition(Game *game, Move move)
 {
     // Transform board.
     transform_board(game, move);
@@ -271,11 +251,11 @@ static void turn_transition(Game *game, Move move)
             print_no_valid_moves();
     }
 
-
-    ///////////////////////////
     // Render the game board.
     gtk_widget_queue_draw(game->drawing_area);
-    ///////////////////////////
+
+    // Update the widgets that show the game information.
+    update_game_info(game);
 
     return;
 }
@@ -309,6 +289,65 @@ void initialize_board(Square board[BOARD_SIZE][BOARD_SIZE], int i, int j)
 }
 
 
+static void game_over_function(Game *game)
+{
+    gchar new_text[700];
+    // Set the text for the game over label.
+    set_text_game_over(game, new_text);
+
+    // Change the text of the game over label.
+    gtk_label_set_text(game_over_label, new_text);
+
+    // Update the game's statistics.
+    update_game_statistics(*game);
+}
+
+static void set_text_game_over(Game *game, gchar *text)
+{
+    gint white_count = 0;
+    gint black_count = 0;
+    // Count the amount of black and white discs.
+    get_game_score(game, 0, 0, &white_count, &black_count);
+
+    // Set the new text according to who won.
+    // Black has won.
+    if (black_count > white_count)
+        set_text_aux(game, text, black, FALSE, white_count, black_count);
+
+    // White has won.
+    else if (black_count < white_count)
+        set_text_aux(game, text, white, FALSE, white_count, black_count);
+
+    // The game ended in a draw.
+    else
+        set_text_aux(game, text, black, TRUE, white_count, black_count);
+}
+
+
+static void set_text_aux(
+        Game *game, gchar *text, color color, gboolean draw,
+        gint white_count, gint black_count)
+{
+    if (draw)
+        sprintf(
+                text,
+                "White disks: %d | Black disks: %d.\nThe game ended in a draw.",
+                white_count, black_count);
+
+    else if (game->players_color.player_1 == color)
+        sprintf(
+                text, 
+                "White disks: %d | Black disks: %d.\n%s won!",
+                white_count, black_count, player_name);
+
+    else
+        sprintf(
+                text,
+                "White disks: %d | Black disks: %d.\nGame over. %s lost.",
+                white_count, black_count, player_name);
+}
+
+/*
 void transform_game(Game *game)
 {
     Move move;
@@ -430,6 +469,7 @@ void transform_game(Game *game)
     }
     return transform_game(game);
 }
+*/
 
 
 color get_players_color(Game game)
@@ -828,7 +868,7 @@ static void read_user_input(Move *move, int i)
 }
 
 
-static void get_machine_move(Game game, Move *move)
+void get_machine_move(Game game, Move *move)
 {
     //////////////////////////////////////////////////////////
     // String to store the encoded board and the player.

@@ -25,7 +25,7 @@ typedef enum pattern
 
 
 void button_pressed_callback(GtkWidget *widget, GdkEvent *event, Game *game);
-void start_game(Game *game);
+void turn_transition(Game *game, Move move);
 void initialize_board(Square board[BOARD_SIZE][BOARD_SIZE], int i, int j);
 void transform_game(Game *game);
 char check_for_valid_moves(Game *game);
@@ -33,5 +33,6 @@ color get_players_color(Game game);
 void transform_board(Game *game, Move move);
 void mark_valid_moves(Game *game, color color);
 void switch_player(turn *turn);
+void get_machine_move(Game game, Move *move);
 
 #endif

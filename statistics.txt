@@ -1,33 +1,45 @@
-CPU_1 has corner evaluation, CPU_2 doesn't.
-CPU_1 plays first.
-CPU_1 is BLACK and CPU_2 is WHITE because CPU_1 played first.
-DEPTH 6
+-> Elioth
+| Games played: 11 | Games won: 0 | Games lost: 11 | Draws: 0 |
 
-White: 6 | Black: 3
-White: 3 | Black: 4
-White: 6 | Black: 3
-White: 6 | Black: 3
-White: 6 | Black: 3
-White: 6 | Black: 3
-White: 6 | Black: 3
-White: 6 | Black: 3
-White: 3 | Black: 4
-White: 6 | Black: 3
-White: 3 | Black: 4
-White: 6 | Black: 3
-White: 3 | Black: 4
-White: 6 | Black: 3
-White: 3 | Black: 4
-White: 6 | Black: 3
-White: 3 | Black: 4
-White: 6 | Black: 3
-White: 3 | Black: 4
-White: 41 | Black: 23
-White: 41 | Black: 23
-White: 41 | Black: 23
+-> Jere
+| Games played: 2 | Games won: 0 | Games lost: 2 | Draws: 0 |
 
+-> Mati
+| Games played: 4 | Games won: 0 | Games lost: 3 | Draws: 1 |
 
-CPU1 is BLACK with CORNER EVALuation
-DEPTH 8
+-> Elitoh
+| Games played: 1 | Games won: 0 | Games lost: 1 | Draws: 0 |
 
-White: 13 | Black: 51
+-> Matias
+| Games played: 1 | Games won: 1 | Games lost: 0 | Draws: 0 |
+
+-> SDa
+| Games played: 1 | Games won: 0 | Games lost: 1 | Draws: 0 |
+
+-> asdfa
+| Games played: 1 | Games won: 1 | Games lost: 0 | Draws: 0 |
+
+-> 
+| Games played: 1 | Games won: 1 | Games lost: 0 | Draws: 0 |
+
+-> 
+| Games played: 1 | Games won: 1 | Games lost: 0 | Draws: 0 |
+
+-> 
+| Games played: 1 | Games won: 1 | Games lost: 0 | Draws: 0 |
+
+-> 
+| Games played: 1 | Games won: 1 | Games lost: 0 | Draws: 0 |
+
+-> 
+| Games played: 1 | Games won: 1 | Games lost: 0 | Draws: 0 |
+
+-> 
+| Games played: 1 | Games won: 1 | Games lost: 0 | Draws: 0 |
+
+-> 
+| Games played: 1 | Games won: 1 | Games lost: 0 | Draws: 0 |
+
+-> asdf
+| Games played: 3 | Games won: 2 | Games lost: 1 | Draws: 0 |
+

@@ -4,6 +4,7 @@
 #include "../game.h"
 
 void draw_callback(GtkWidget *widget, cairo_t *cr, gpointer data);
+void update_game_info(Game *game);
 void print_game(Game *game);
 void print_invalid_input(void);
 void print_illegal_move(void);
@@ -19,6 +20,7 @@ void print_game_over(Game game);
 void print_invalid_input_machine(char input_string[5]);
 void print_illegal_move_machine(Move move);
 void print_opponents_cpu_move(Move move);
-void print_game_statistics_to_file(Game game);
+//void print_game_statistics_to_file(Game *game);
+void update_game_statistics(Game game);
 
 #endif

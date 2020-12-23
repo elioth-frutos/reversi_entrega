@@ -1,9 +1,12 @@
 # About
 C language implementation of the board game Reversi with a
-command line interface.
+graphical user interface made with the GTK library.
 
-## Presentation
+## First presentation
 [![Watch the video](https://img.youtube.com/vi/bvcf3egUvFE/maxresdefault.jpg)](https://youtu.be/bvcf3egUvFE)
+
+## Final presentation
+[![Watch the video](https://img.youtube.com/vi/VrXYBHdVJ4A/maxresdefault.jpg)](https://youtu.be/VrXYBHdVJ4A)
 
 ## Author
 - Elioth Frutos

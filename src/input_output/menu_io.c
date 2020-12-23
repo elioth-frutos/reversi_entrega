@@ -6,6 +6,37 @@
 void consume_buffer(void);
 
 
+void load_statistics(void)
+{
+    gchar aux[1000], *text;
+    gint text_length = 1;
+
+    // Allocate memory for the text.
+    text = malloc(sizeof(gchar) * text_length);
+    text[0] = '\0';
+
+    // Open the statistics file for reading.
+    FILE *fp = fopen("statistics.txt", "r");
+
+    // Copy every line of the file to a very long string.
+    while (fgets(aux, 1000, fp))
+    {
+        // Sum the length of the line.
+        text_length += strlen(aux);
+        // Allocate more memory.
+        text = realloc(text, text_length * sizeof(gchar));
+        // Concatenate the newly read characters to the string.
+        strcat(text, aux);
+    }
+
+    // Set the text for the statistics text view's buffer to
+    // the long string previosly copied from the file.
+    gtk_text_buffer_set_text(buffer, text, -1);
+
+    // Free all dynamically allocated memory for the string.
+    free(text);
+}
+
 void print_welcome_message(void)
 {
     printf("\nWelcome to Reversi.\n");
